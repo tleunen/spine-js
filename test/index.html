@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Spine Animation Javascript</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="spine.js" type="text/javascript"></script>
+    <script>
+        var spineAnimations = [
+            {   name: 'spineboy', scale: 1,
+                skeleton: 'data/spineboy/spineboy-skeleton.json',
+                anim: ['data/spineboy/spineboy-walk.json', 'data/spineboy/spineboy-jump.json'],
+                imgPattern: 'data/spineboy/{name}.png'
+            },
+            {   name: 'dragon', scale: 1,
+                skeleton: 'data/dragon/dragon-skeleton.json',
+                anim: ['data/dragon/dragon-flying.json'],
+                imgPattern: 'data/dragon/{name}.png'
+            }
+        ];
+        var currentSpineAnimation = spineAnimations[0];
+
+        function initSelect() {
+            var select = document.getElementById('selectAnim');
+
+            for(var i=0, n=spineAnimations.length; i<n;++i) {
+                var elm = document.createElement('option');
+                elm.innerText = spineAnimations[i].name;
+                elm.setAttribute('value', i);
+                select.appendChild(elm);
+            }
+
+            select.onchange = function() {
+                var idx = select.selectedIndex;
+                currentSpineAnimation = spineAnimations[idx];
+
+                reloadSpineAnimation();
+            }
+        }
+
+        function reloadSpineAnimation() {
+            Spine.load({
+                skeleton: currentSpineAnimation.skeleton,
+                skeletonScale: currentSpineAnimation.scale,
+                animations: currentSpineAnimation.anim,
+                imgPattern: currentSpineAnimation.imgPattern
+            }, function(skel, anims) {
+
+                skeleton = skel;
+                animations = anims;
+                currentAnimation = anims[0];
+
+                skeleton.flipX = false;
+                skeleton.flipY = false;
+                skeleton.setToBindPose();
+                skeleton.getRootBone().x = 400;
+                skeleton.getRootBone().y = 550;
+                skeleton.updateWorldTransform();
+
+                if(!alreadyInit)
+                    animate();
+            });
+        }
+    </script>
+    <script>
+        var canvas, context,
+            canvasSize = [0,0];
+
+        var skeleton, animations, currentAnimation,
+            animationTime = 0;
+
+        var alreadyInit = false,
+            pauseAnimation = false;
+
+        function init() {
+            canvas = document.getElementById('cnv');
+            context = canvas.getContext('2d');
+            canvasSize = [canvas.width,canvas.height];
+
+            reloadSpineAnimation();
+        }
+
+        var time = 1;
+        function animate() {
+            requestAnimationFrame( animate );
+            var now = Date.now(),
+                dt = now - (time || now);
+
+            //dt = 0;
+            if(!pauseAnimation)
+                update(dt);
+
+            draw();
+            time = now;
+        }
+
+        function update(dt) {
+
+            animationTime += dt;
+
+            /**** BLEND BETWEEN ANIM ****/
+            /**
+            var jump = animations[1].duration,
+                beforeJump = 1000,
+                blendIn = 400,
+                blendOut = 400,
+                blendOutStart = beforeJump + jump - blendOut,
+                total = 3750;
+
+            var root = skeleton.getRootBone();
+
+            if(animationTime > total) {
+                animationTime = 0;
+            }
+            else if(animationTime > beforeJump + jump) {
+                // walk after jump
+                animations[0].apply(skeleton, animationTime, true);
+            }
+            else if(animationTime > blendOutStart) {
+                // blend out jump
+                animations[0].apply(skeleton, animationTime, true);
+                animations[1].mix(skeleton, animationTime - beforeJump, false, 1 - (animationTime - blendOutStart) / blendOut);
+            }
+            else if(animationTime > beforeJump + blendIn) {
+                // jump
+                animations[1].apply(skeleton, animationTime - beforeJump, false);
+            }
+            else if(animationTime > beforeJump) {
+                // blend in jump
+                animations[0].apply(skeleton, animationTime, true);
+                animations[1].mix(skeleton, animationTime - beforeJump, false, (animationTime - beforeJump) / blendIn);
+            }
+            else {
+                animations[0].apply(skeleton, animationTime, true);
+            }
+
+            */
+
+            // if no blend
+            animations[0].apply(skeleton, animationTime, true);
+
+            // alway update
+            skeleton.updateWorldTransform();
+        }
+
+        function draw()
+        {
+            context.fillStyle = "#000000";
+            context.fillRect(0,0, canvasSize[0],canvasSize[1]);
+
+            skeleton.draw(context);
+        }
+
+    </script>
+</head>
+
+<body onload='initSelect(); init();' style='text-align: center;'>
+    <p>
+        <button onclick='Spine._DEBUG_=!Spine._DEBUG_;'>Show/Hide bones</button>
+        <button onclick='pauseAnimation=!pauseAnimation;'>Play/Pause animation</button>
+        <select id='selectAnim'></select>
+    </p>
+    <canvas id="cnv" width="800" height="600">Browser Not Supported :(</canvas>
+</body>
+</html>
