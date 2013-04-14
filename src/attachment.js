@@ -15,12 +15,16 @@ Spine.RegionAttachment = function(name, attachmentResolver) {
     this._imgRot = 0;
     this._imgScaleX = 1;
     this._imgScaleY = 0;
+
+    this._alpha = null;
 };
 
 Spine.RegionAttachment.prototype = {
     destroy: function() {},
 
     updateWorldTransform: function(flipX, flipY, slot) {
+        this._alpha = slot.a;
+
         if(this._img._spine_loaded) {
             this._imgX = slot.bone.worldX + this.x * slot.bone.m00 + this.y * slot.bone.m01;
             this._imgY = slot.bone.worldY + this.x * slot.bone.m10 + this.y * slot.bone.m11;
@@ -37,7 +41,6 @@ Spine.RegionAttachment.prototype = {
                 this._imgScaleY *= -1;
                 this._imgRot *= -1;
             }
-            //image:setFillColor(slot.r, slot.g, slot.b, slot.a)
         }
 
     },
@@ -45,8 +48,11 @@ Spine.RegionAttachment.prototype = {
     draw: function(context) {
         context.save();
 
+        context.globalAlpha = this._alpha;
+
         context.translate(this._imgX, this._imgY);
         context.rotate(this._imgRot * (Math.PI/180));
+        context.scale(this.scaleX, this.scaleY);
 
         var x = -((this._img.width*this._imgScaleX)>>1),
             y = -((this._img.height*this._imgScaleY)>>1);

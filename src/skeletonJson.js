@@ -1,21 +1,3 @@
-function readCurve(timeline, keyframeIndex, valueMap) {
-    var curve = valueMap['curve'];
-    if(!curve) return;
-
-    if(curve == 'stepped') {
-        timeline.setStepped(keyframeIndex);
-    }
-    else if(Array.isArray(curve)) {
-        timeline.setCurve(keyframeIndex, curve[0], curve[1], curve[2], curve[3]);
-    }
-}
-
-function toColor(value, index) {
-    if(value.length != 8) throw "Error parsing color, length must be 8: " + value;
-    var color = parseInt(value.substr(index*2,2), 16);
-    return color / 255;
-}
-
 Spine.SkeletonJson = function(attachmentResolver) {
     this._attachmentResolver = attachmentResolver;
     this._scale = 1;
@@ -37,20 +19,17 @@ Spine.SkeletonJson.prototype = {
 
         Spine.SendXhrRequest({url: jsonFile}, function(value) {
             var parsed = JSON.parse(value),
-                bonesData = parsed['bones'],
-                slotsData = parsed['slots'],
-                skinsData = parsed['skins'],
-                attachmentsData,
-                i, j, k, iend,
-                bone, slot, skin, attachment;
+                i, j, k, n;
 
             var skeletonData = new Spine.SkeletonData();
 
             // bones
+            var bonesData = parsed['bones'],
+                bone;
             if(bonesData) {
                 skeletonData.bones = new Array(bonesData.length);
 
-                for(i=0,iend=bonesData.length; i<iend; ++i) {
+                for(i=0,n=bonesData.length; i<n; ++i) {
                     bone = {
                         name: bonesData[i]['name'],
                         parent: null,
@@ -75,9 +54,11 @@ Spine.SkeletonJson.prototype = {
             }
 
             // slots
+            var slotsData = parsed['slots'],
+                slot;
             if(slotsData) {
                 skeletonData.slots = new Array(slotsData.length);
-                for(i=0,iend=slotsData.length; i<iend; ++i) {
+                for(i=0,n=slotsData.length; i<n; ++i) {
                     slot = {
                         name: slotsData[i]['name'],
                         bone: null,
@@ -90,10 +71,10 @@ Spine.SkeletonJson.prototype = {
 
                     var color = slotsData[i]['color'];
                     if(color) {
-                        slot.r = toColor(color, 0);
-                        slot.g = toColor(color, 1);
-                        slot.b = toColor(color, 2);
-                        slot.a = toColor(color, 3);
+                        slot.r = that._toColor(color, 0);
+                        slot.g = that._toColor(color, 1);
+                        slot.b = that._toColor(color, 2);
+                        slot.a = that._toColor(color, 3);
                     }
 
                     var boneName = slotsData[i]['bone'];
@@ -109,8 +90,11 @@ Spine.SkeletonJson.prototype = {
             }
 
             // skins
+            var skinsData = parsed['skins'],
+                skin,
+                attachmentsData, attachment;
             if(skinsData) {
-                //skeletonData.skins = new Array(skinsData.length);
+                skeletonData.skins = new Array(skinsData.length);
 
                 for(i in skinsData) {
                     skin = new Spine.Skin(i);
@@ -141,139 +125,157 @@ Spine.SkeletonJson.prototype = {
                 }
             }
 
+            // animations
+            var animationsMap = parsed['animations'];
+            if(animationsMap) {
+                for(i in animationsMap) {
+                    that._readAnimation(i, animationsMap[i], skeletonData);
+                }
+            }
+
             successCallback(skeletonData);
         });
     },
 
-    readAnimation: function(jsonFile, skeletonData, successCallback) {
-        var that = this;
+    _readAnimation: function(animKey, animValue, skeletonData) {
+        var TIMELINE_SCALE       = "scale",
+            TIMELINE_ROTATE      = "rotate",
+            TIMELINE_TRANSLATE   = "translate",
+            TIMELINE_ATTACHMENT  = "attachment",
+            TIMELINE_COLOR       = "color";
 
-        if(!skeletonData) throw "skeletonData cannot be null";
+        var timelines = [],
+            duration = 0;
 
-        Spine.SendXhrRequest({url: jsonFile}, function(value) {
-            var parsed = JSON.parse(value),
-                bonesData = parsed['bones'],
-                slotsData = parsed['slots'],
-                boneName, boneIndex,
-                timelineMap, timelineName, timelineValues, timeline, valueMap,
-                i, iend,
-                slotName, slotIndex;
+        var timelineMap, timelineName, timelineValues, timeline, valueMap,
+            i, n;
 
-            var TIMELINE_SCALE       = "scale",
-                TIMELINE_ROTATE      = "rotate",
-                TIMELINE_TRANSLATE   = "translate",
-                TIMELINE_ATTACHMENT  = "attachment",
-                TIMELINE_COLOR       = "color";
+        var bonesData = animValue['bones'],
+            boneName, boneIndex;
+        if(bonesData) {
+            for(boneName in bonesData) {
+                boneIndex = skeletonData.findBoneIndex(boneName);
+                if(boneIndex < 0) throw 'Bone not found: ' + boneName;
 
-            var timelines = [],
-                duration = 0;
+                timelineMap = bonesData[boneName];
+                for(timelineName in timelineMap) {
+                    timelineValues = timelineMap[timelineName];
 
-            if(bonesData) {
-                for(boneName in bonesData) {
-                    boneIndex = skeletonData.findBoneIndex(boneName);
-                    if(boneIndex < 0) throw 'Bone not found: ' + boneName;
+                    // Rotate
+                    if (timelineName == TIMELINE_ROTATE) {
+                        timeline = new Spine.RotateTimeline(timelineValues.length);
+                        timeline.boneIndex = boneIndex;
 
-                    timelineMap = bonesData[boneName];
-                    for(timelineName in timelineMap) {
-                        timelineValues = timelineMap[timelineName];
+                        for(i=0,n=timelineValues.length; i<n; ++i) {
+                            valueMap = timelineValues[i];
 
-                        // Rotate
-                        if (timelineName == TIMELINE_ROTATE) {
-                            timeline = new Spine.RotateTimeline(timelineValues.length);
-                            timeline.boneIndex = boneIndex;
-
-                            for(i=0,iend=timelineValues.length; i<iend; ++i) {
-                                valueMap = timelineValues[i];
-
-                                timeline.setKeyframe(i, valueMap['time'], valueMap['angle']);
-                                readCurve(timeline, i, valueMap);
-                            }
+                            timeline.setKeyframe(i, valueMap['time'], valueMap['angle']);
+                            this._readCurve(timeline, i, valueMap);
                         }
-                        else if(timelineName == TIMELINE_TRANSLATE || timelineName == TIMELINE_SCALE) {
-                            var timelineScale = 1;
-                            if(timelineName == TIMELINE_TRANSLATE)
-                                timeline = new Spine.TranslateTimeline(timelineValues.length);
-                            else {
-                                timeline = new Spine.ScaleTimeline(timelineValues.length);
-                                timelineScale = that._scale;
-                            }
-                            timeline.boneIndex = boneIndex;
-
-                            for(i=0,iend=timelineValues.length; i<iend; ++i) {
-                                valueMap = timelineValues[i];
-
-                                timeline.setKeyframe(i,
-                                    valueMap['time'],
-                                    (valueMap['x'] || 0) * timelineScale,
-                                    (valueMap['y'] || 0) * timelineScale
-                                );
-                                readCurve(timeline, i, valueMap);
-                            }
-                        }
-                        else {
-                            throw "Invalid timeline type for a bone: " + timelineName + " (" + boneName + ")";
-                        }
-
-                        timelines.push(timeline);
-                        if(timeline.getDuration() > duration)
-                            duration = timeline.getDuration();
                     }
+                    else if(timelineName == TIMELINE_TRANSLATE || timelineName == TIMELINE_SCALE) {
+                        var timelineScale = 1;
+                        if(timelineName == TIMELINE_TRANSLATE)
+                            timeline = new Spine.TranslateTimeline(timelineValues.length);
+                        else {
+                            timeline = new Spine.ScaleTimeline(timelineValues.length);
+                            timelineScale = this._scale;
+                        }
+                        timeline.boneIndex = boneIndex;
+
+                        for(i=0,n=timelineValues.length; i<n; ++i) {
+                            valueMap = timelineValues[i];
+
+                            timeline.setKeyframe(i,
+                                valueMap['time'],
+                                (valueMap['x'] || 0) * timelineScale,
+                                (valueMap['y'] || 0) * timelineScale
+                            );
+                            this._readCurve(timeline, i, valueMap);
+                        }
+                    }
+                    else {
+                        throw "Invalid timeline type for a bone: " + timelineName + " (" + boneName + ")";
+                    }
+
+                    timelines.push(timeline);
+                    if(timeline.getDuration() > duration)
+                        duration = timeline.getDuration();
                 }
             }
+        }
 
-            if(slotsData) {
-                for(slotName in slotsData) {
-                    slotIndex = skeletonData.findSlotIndex(slotName);
-                    if(slotIndex < 0) throw 'Slot not found: ' + slotName;
+        var slotsData = animValue['slots'],
+            slotName, slotIndex;
+        if(slotsData) {
+            for(slotName in slotsData) {
+                slotIndex = skeletonData.findSlotIndex(slotName);
+                if(slotIndex < 0) throw 'Slot not found: ' + slotName;
 
-                    timelineMap = slotsData[slotName];
-                    for(timelineName in timelineMap) {
-                        timelineValues = timelineMap[timelineName];
+                timelineMap = slotsData[slotName];
+                for(timelineName in timelineMap) {
+                    timelineValues = timelineMap[timelineName];
 
-                        if(timelineName == TIMELINE_COLOR) {
-                            timeline = new Spine.ColorTimeline(timelineValues.length);
-                            timeline.slotIndex = slotIndex;
+                    if(timelineName == TIMELINE_COLOR) {
+                        timeline = new Spine.ColorTimeline(timelineValues.length);
+                        timeline.slotIndex = slotIndex;
 
-                            for(i=0,iend=timelineValues.length; i<iend; ++i) {
-                                valueMap = timelineValues[i];
+                        for(i=0,n=timelineValues.length; i<n; ++i) {
+                            valueMap = timelineValues[i];
 
-                                var color = valueMap['color'];
-                                timeline.setKeyframe(i,
-                                    valueMap['time'],
-                                    toColor(color, 0),
-                                    toColor(color, 1),
-                                    toColor(color, 2),
-                                    toColor(color, 3)
-                                );
-                                readCurve(timeline, i, valueMap);
-                            }
+                            var color = valueMap['color'];
+                            timeline.setKeyframe(i,
+                                valueMap['time'],
+                                this._toColor(color, 0),
+                                this._toColor(color, 1),
+                                this._toColor(color, 2),
+                                this._toColor(color, 3)
+                            );
+                            this._readCurve(timeline, i, valueMap);
                         }
-                        else if(timelineName == TIMELINE_ATTACHMENT) {
-                            timeline = new Spine.AttachmentTimeline(timelineValues.length);
-                            timeline.slotIndex = slotIndex;
-
-                            for(i=0,iend=timelineValues.length; i<iend; ++i) {
-                                valueMap = timelineValues[i];
-
-                                timeline.setKeyframe(i,
-                                    valueMap['time'],
-                                    valueMap['name'] || ''
-                                );
-                            }
-                        }
-                        else {
-                            throw "Invalid timeline type for a slot: " + timelineName + " (" + slotName + ")";
-                        }
-
-                        timelines.push(timeline);
-                        if(timeline.getDuration() > duration)
-                            duration = timeline.getDuration();
                     }
+                    else if(timelineName == TIMELINE_ATTACHMENT) {
+                        timeline = new Spine.AttachmentTimeline(timelineValues.length);
+                        timeline.slotIndex = slotIndex;
+
+                        for(i=0,n=timelineValues.length; i<n; ++i) {
+                            valueMap = timelineValues[i];
+
+                            timeline.setKeyframe(i,
+                                valueMap['time'],
+                                valueMap['name'] || ''
+                            );
+                        }
+                    }
+                    else {
+                        throw "Invalid timeline type for a slot: " + timelineName + " (" + slotName + ")";
+                    }
+
+                    timelines.push(timeline);
+                    if(timeline.getDuration() > duration)
+                        duration = timeline.getDuration();
                 }
             }
+        }
 
-            var animation = new Spine.Animation(timelines, duration);
-            successCallback(animation);
-        });
+        skeletonData.animations.push(new Spine.Animation(animKey, timelines, duration));
+    },
+
+    _readCurve: function(timeline, keyframeIndex, valueMap) {
+        var curve = valueMap['curve'];
+        if(!curve) return;
+
+        if(curve == 'stepped') {
+            timeline.setStepped(keyframeIndex);
+        }
+        else if(Array.isArray(curve)) {
+            timeline.setCurve(keyframeIndex, curve[0], curve[1], curve[2], curve[3]);
+        }
+    },
+
+    _toColor: function(value, index) {
+        if(value.length != 8) throw "Error parsing color, length must be 8: " + value;
+        var color = parseInt(value.substr(index*2,2), 16);
+        return color / 255;
     }
 };

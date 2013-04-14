@@ -53,10 +53,9 @@ Spine.max = function(a,b) {
 
 Spine.load = function(dataLoad, callback) {
     if(!dataLoad.skeleton) throw "dataLoad.skeleton should be defined";
-    if(!dataLoad.animations) throw "dataLoad.animations should be defined";
     if(!dataLoad.imgPattern && !dataLoad.atlas) throw "dataLoad.imgPattern or data.atlas should be defined";
 
-    var attachmentLoader, skeleton, animations = new Array(dataLoad.animations.length);
+    var attachmentLoader, skeleton;
 
     if(dataLoad.imgPattern) attachmentLoader = new Spine.AttachmentLoader(dataLoad.imgPattern);
     else if(dataLoad.atlas) throw "atlas not supported yed";
@@ -65,23 +64,6 @@ Spine.load = function(dataLoad, callback) {
     if(dataLoad.skeletonScale) skeletonJson.setScale(dataLoad.skeletonScale);
 
     skeletonJson.readSkeletonData(dataLoad.skeleton, function(skeletonData) {
-        skeleton = new Spine.Skeleton(skeletonData);
-        var animLoaded = 0;
-
-        function readAnim(animation, index) {
-            skeletonJson.readAnimation(animation, skeletonData, function(anim) {
-                animations[index] = anim;
-                ++animLoaded;
-
-                if(animLoaded === animations.length) {
-                    skeletonJson = null;
-                    callback(skeleton, animations);
-                }
-            });
-        }
-
-        for(var i=0, n=animations.length; i<n; ++i) {
-            readAnim(dataLoad.animations[i], i);
-        }
+        callback(new Spine.Skeleton(skeletonData));
     });
 };

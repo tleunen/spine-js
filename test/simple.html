@@ -7,14 +7,16 @@
     <script>
         var spineAnimations = [
             {   name: 'spineboy', scale: 1,
-                skeleton: 'data/spineboy/spineboy-skeleton.json',
-                anim: ['data/spineboy/spineboy-walk.json', 'data/spineboy/spineboy-jump.json'],
+                skeleton: 'data/spineboy/spineboy.json',
                 imgPattern: 'data/spineboy/{name}.png'
             },
             {   name: 'dragon', scale: 1,
-                skeleton: 'data/dragon/dragon-skeleton.json',
-                anim: ['data/dragon/dragon-flying.json'],
+                skeleton: 'data/dragon/dragon.json',
                 imgPattern: 'data/dragon/{name}.png'
+            },
+            {   name: 'powerup', scale: 1,
+                skeleton: 'data/powerup/powerup.json',
+                imgPattern: 'data/powerup/{name}.png'
             }
         ];
         var currentSpineAnimation = spineAnimations[0];
@@ -41,13 +43,11 @@
             Spine.load({
                 skeleton: currentSpineAnimation.skeleton,
                 skeletonScale: currentSpineAnimation.scale,
-                animations: currentSpineAnimation.anim,
                 imgPattern: currentSpineAnimation.imgPattern
-            }, function(skel, anims) {
+            }, function(skel) {
 
                 skeleton = skel;
-                animations = anims;
-                currentAnimation = anims[0];
+                animations = skel.skeletonData.animations;
 
                 skeleton.flipX = false;
                 skeleton.flipY = false;
@@ -65,7 +65,7 @@
         var canvas, context,
             canvasSize = [0,0];
 
-        var skeleton, animations, currentAnimation,
+        var skeleton, animations,
             animationTime = 0;
 
         var alreadyInit = false,
@@ -96,44 +96,6 @@
         function update(dt) {
 
             animationTime += dt;
-
-            /**** BLEND BETWEEN ANIM ****/
-            /**
-            var jump = animations[1].duration,
-                beforeJump = 1000,
-                blendIn = 400,
-                blendOut = 400,
-                blendOutStart = beforeJump + jump - blendOut,
-                total = 3750;
-
-            var root = skeleton.getRootBone();
-
-            if(animationTime > total) {
-                animationTime = 0;
-            }
-            else if(animationTime > beforeJump + jump) {
-                // walk after jump
-                animations[0].apply(skeleton, animationTime, true);
-            }
-            else if(animationTime > blendOutStart) {
-                // blend out jump
-                animations[0].apply(skeleton, animationTime, true);
-                animations[1].mix(skeleton, animationTime - beforeJump, false, 1 - (animationTime - blendOutStart) / blendOut);
-            }
-            else if(animationTime > beforeJump + blendIn) {
-                // jump
-                animations[1].apply(skeleton, animationTime - beforeJump, false);
-            }
-            else if(animationTime > beforeJump) {
-                // blend in jump
-                animations[0].apply(skeleton, animationTime, true);
-                animations[1].mix(skeleton, animationTime - beforeJump, false, (animationTime - beforeJump) / blendIn);
-            }
-            else {
-                animations[0].apply(skeleton, animationTime, true);
-            }
-
-            */
 
             // if no blend
             animations[0].apply(skeleton, animationTime, true);

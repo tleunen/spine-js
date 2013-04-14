@@ -2,6 +2,7 @@ Spine.SkeletonData = function() {
     this.bones = [];
     this.slots = [];
     this.skins = [];
+    this.animations = [];
     this.defaultSkin = null;
 };
 
@@ -36,6 +37,14 @@ Spine.SkeletonData.prototype = {
         for(var i=0, iend=this.skins.length; i<iend; ++i) {
             if(this.skins[i].name == skinName)
                 return this.skins[i];
+        }
+        return null;
+    },
+
+    findAnimation: function(animationName) {
+        for(var i=0, n=this.animations.length; i<n; ++i) {
+            if(this.animations[i].name == animationName)
+                return this.animations[i];
         }
         return null;
     }

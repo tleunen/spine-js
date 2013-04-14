@@ -1,5 +1,6 @@
 module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-contrib-clean');
+    grunt.loadNpmTasks('grunt-contrib-connect');
     grunt.loadNpmTasks('grunt-contrib-concat');
     grunt.loadNpmTasks('grunt-contrib-jshint');
     grunt.loadNpmTasks('grunt-contrib-uglify');
@@ -13,6 +14,8 @@ module.exports = function(grunt) {
         'src/attachmentLoader.js',
         'src/attachment.js',
         'src/animation.js',
+        'src/animationState.js',
+        'src/animationStateData.js',
         'src/skeleton.js',
         'src/bone.js',
         'src/slot.js',
@@ -34,6 +37,16 @@ module.exports = function(grunt) {
             test: {
                 src: spineFiles,
                 dest: 'test/spine.js'
+            }
+        },
+
+        connect: {
+            livereload: {
+                options: {
+                    port: 9001,
+                    keepalive: true,
+                    base: 'test'
+                }
             }
         },
 

@@ -1,4 +1,5 @@
-Spine.Animation = function(timelines, duration) {
+Spine.Animation = function(name, timelines, duration) {
+    this.name = name;
     this.timelines = timelines;
     this.duration = duration * 1000; // convert in ms
 };
@@ -309,6 +310,12 @@ Spine.ScaleTimeline.prototype.apply = function(skeleton, time, alpha) {
 //
 // Color Timeline
 //
+var COLOR_LAST_FRAME_TIME = -5;
+var COLOR_FRAME_R = 1;
+var COLOR_FRAME_G = 2;
+var COLOR_FRAME_B = 3;
+var COLOR_FRAME_A = 4;
+
 Spine.ColorTimeline = function(keyframeCount) {
     CurveTimeline.call(this, keyframeCount);
 

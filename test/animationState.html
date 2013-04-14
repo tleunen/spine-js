@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Spine Animation Javascript</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="spine.js" type="text/javascript"></script>
+    <script>
+        var canvas, context,
+            canvasSize = [0,0];
+
+        var skeleton, animState;
+
+        function init() {
+            canvas = document.getElementById('cnv');
+            context = canvas.getContext('2d');
+            canvasSize = [canvas.width,canvas.height];
+
+            Spine.load({
+                skeleton: 'data/spineboy/spineboy.json',
+                skeletonScale: 1,
+                imgPattern: 'data/spineboy/{name}.png'
+            }, function(skel) {
+                skeleton = skel;
+
+                // Define mixing between animations
+                var animStateData = new Spine.AnimationStateData(skeleton.skeletonData);
+                animStateData.setMixFromNames('walk', 'jump', 400);
+                animStateData.setMixFromNames('jump', 'walk', 400);
+
+                animState = new Spine.AnimationState(animStateData);
+                animState.setAnimationFromName('walk', true);
+
+                skeleton.flipX = false;
+                skeleton.flipY = false;
+                skeleton.setToBindPose();
+                skeleton.getRootBone().x = 400;
+                skeleton.getRootBone().y = 550;
+                skeleton.updateWorldTransform();
+
+                animate();
+            });
+        }
+
+        var time = 1;
+        function animate() {
+            requestAnimationFrame( animate );
+            var now = Date.now(),
+                dt = now - (time || now);
+
+            update(dt);
+
+            draw();
+            time = now;
+        }
+
+        function update(dt) {
+
+            animState.update(dt);
+            animState.apply(skeleton);
+
+            if(animState.getAnimation().name == 'walk') {
+                // After one second, change the current animation. Mixing is done by AnimationState for you.
+                if(animState.getTime() > 2000) animState.setAnimationFromName("jump", false);
+            }
+            else {
+                if(animState.getTime() > 1000) animState.setAnimationFromName("walk", true);
+            }
+
+            skeleton.updateWorldTransform();
+        }
+
+        function draw()
+        {
+            context.fillStyle = "#000000";
+            context.fillRect(0,0, canvasSize[0],canvasSize[1]);
+
+            skeleton.draw(context);
+        }
+
+    </script>
+</head>
+
+<body onload='init();' style='text-align: center;'>
+    <canvas id="cnv" width="800" height="600">Browser Not Supported :(</canvas>
+</body>
+</html>
