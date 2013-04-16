@@ -6,7 +6,7 @@ More info on Spine: [http://esotericsoftware.com](http://esotericsoftware.com)
 
 ## How to test
 
-- Install NodeJS and NPN
+- Install NodeJS and NPM
 - Start command `npm install` inside the spine-js folder
 - Start command `grunt connect` to start the web server
 - Go to `localhost:9001` with your browser
