@@ -1,3 +1,8 @@
+As Spine is now integrated in [Pixi](https://github.com/GoodBoyDigital/pixi.js) and [Turbulenz](https://github.com/EsotericSoftware/spine-runtimes/tree/master/spine-js/turbulenz), this repository will no longer be updated.
+
+Pixi is definitely one of the best 2D engine, so I recommend to use it for Spine support.
+
+
 # Spine-JS
 
 Spine-JS is a Javascript runtime to use animations from Spine.
